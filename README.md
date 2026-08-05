@@ -1,1 +1,1 @@
-# wildcat_distribution_models
+# Wildcat distribution models
