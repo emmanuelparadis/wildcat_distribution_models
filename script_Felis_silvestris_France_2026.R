@@ -1,16 +1,18 @@
 ### Files needed
 ## getNei.R
+## buildHabitatIndex.R
 ## Export_Chat_forestier_FF20260429.xlsx
+## (Export_Chat_forestier_FF20260429.tab.gz is the same file but saved as text and compressed with GZIP)
 ## gadm_410-levels.gpkg
 
 ### R packages (in addition to recommended R packages):
-maps [CRAN]
-mapdata [CRAN]
-terra [CRAN]
-sf [CRAN]
-tigers [CRAN]
-xtable [CRAN]
-maxentcpp [CRAN]
+## maps [CRAN]
+## mapdata [CRAN]
+## terra [CRAN]
+## sf [CRAN]
+## tigers [CRAN]
+## xtable [CRAN]
+## maxentcpp [CRAN]
 
 ############################################################
 
