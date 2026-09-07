@@ -1,20 +1,7 @@
-### Files needed
-## getNei.R
-## buildHabitatIndex.R
-## Export_Chat_forestier_FF20260429.xlsx
-## (Export_Chat_forestier_FF20260429.tab.gz is the same file but saved as text and compressed with GZIP)
-## gadm_410-levels.gpkg
-
-### R packages (in addition to recommended R packages):
-## maps [CRAN]
-## mapdata [CRAN]
-## terra [CRAN]
-## sf [CRAN]
-## tigers [CRAN]
-## xtable [CRAN]
-## maxentcpp [CRAN]
-
 ############################################################
+source("getTOC_Rscript.R")
+## display the table of contents of the script (main sections must start with ###)
+getTOC_Rscript("script_Felis_silvestris_France_2026.R")
 
 ##library(readxl)
 ##DF <- read_xlsx("Export_Chat_forestier_FF20260429.xlsx")
@@ -22,7 +9,7 @@
 ## The file Export_Chat_forestier_FF20260429.xlsx was provided by
 ## Ligue pour la Protection des Oiseaux (LPO); it was exported as
 ## tab-delimited file for the present analyses, and then compressed
-## with GZIP (3 x smaller file size).
+## with GZIP (3x smaller file size).
 
 ## read the whole dataset:
 DF <- read.delim("Export_Chat_forestier_FF20260429.tab.gz", dec = ",")
@@ -103,7 +90,7 @@ lab[length(lab)] <- "2000" # keep the last label
 co <- c("blue2", "green")
 lgd_txt <- paste0(c("First", "Second"), "-hand observations")
 
-pdf("N_1st_vs_2nd_hand.pdf", 8.5, 6)
+pdf("N_1st_vs_2nd_hand_fulldata.pdf", 8.5, 6)
 par(las = 1, mar = c(4.1, 5, 1, 1))
 plot(Year, N1st+1, type = "l", ylab = "Number of observations (+ 1)", col = co[1], log = "y", yaxt = "n")
 points(Year, N2nd+1, type = "l", col = co[2])
@@ -111,13 +98,29 @@ axis(2, at = at, labels = lab)
 legend("top", , lgd_txt, bty = "n", lty = 1, col = co)
 dev.off()
 
+## repeat the same but remove data until 1979 (and no need to do +1):
+s <- which(Year > 1979)
+pdf("N_1st_vs_2nd_hand.pdf", 8.5, 6)
+par(las = 1, mar = c(4.1, 5, 1, 1))
+plot(Year[s], N1st[s], type = "l", xlab = "Year", ylab = "Number of observations", col = co[1], log = "y", yaxt = "n", ylim = c(1, 2000))
+points(Year[s], N2nd[s], type = "l", col = co[2])
+axis(2, at = at, labels = lab)
+legend("topleft", , lgd_txt, bty = "n", lty = 1, col = co)
+dev.off()
+
+### Drop observations older than 1980:
+dw <- which(DF$Année < 1980)
+length(dw) # 640
+DF <- DF[-dw, ]
+dim(DF) # 22870    41
+
 ### Observers and their number of observations
 
-ID <- DFb$ID.universel.observateur
+ID <- DF$ID.universel.observateur
 table(cut(table(ID), c(0, 1, 5, 50, 100, Inf)))
-## 1322 & 1\\
-## 939 & 2--5\\
-## 563 & 6--50\\
+## 1321 & 1\\
+## 936 & 2--5\\
+## 562 & 6--50\\
 ## 45 & 51--100\\
 ## 31 & $>100$\\
 
@@ -155,7 +158,7 @@ toto <- data.frame(table(DFb$Nombre))
 row.names(toto) <- toto$Var1
 toto$Var1 <- NULL
 
-## using the "stripped" dataset (DFb):
+## using the "stripped" dataset (DF):
 titi <- data.frame(table(DF$Nombre))
 row.names(titi) <- titi$Var1
 titi$Var1 <- NULL
@@ -174,39 +177,39 @@ colSums(toto) == c(nrow(DFb), nrow(DF)) # check
 ### Détails
 
 ## number of unique "details" as reported by the observers:
-length(unique(DFb$Détails)) # 185
+length(unique(DF$Détails)) # 185
 
 ## how many were captured and handled:
-sum(t1 <- grepl("capturé", DFb$Détails)) # 999
-sum(t2 <- grepl("en main", DFb$Détails)) # 999
+sum(t1 <- grepl("capturé", DF$Détails)) # 671
+sum(t2 <- grepl("en main", DF$Détails)) # 671
 sum(t1 & !t2) # 0
-100 * sum(t1 & t2) / nrow(DFb) # 4.249256 %
+100 * sum(t1 & t2) / nrow(DF) # 2.933975 %
 
 ## how many with no detail:
-sum(DFb$Détails == "") # 16961
-100 * sum(DFb$Détails == "") / nrow(DFb) # 72.14377 %
+sum(DF$Détails == "") # 16682
+100 * sum(DF$Détails == "") / nrow(DFb) # 70.95704 %
 
 ## How many were "seen":
 ## (calculate the %ages below excluding the 72% "empty details")
-Nd <- sum(DFb$Détails != "") # 6549
-sum(vu <- grepl("vu", DFb$Détails)) # 3303
-100 * sum(vu) / Nd # 50.43518 %
+Nd <- sum(DF$Détails != "") # 6188
+sum(vu <- grepl("vu", DF$Détails)) # 3279
+100 * sum(vu) / Nd # 52.98966 %
 
 ## How many were "heard":
-sum(entendu <- grepl("entendu", DFb$Détails)) # 29
-100 * sum(entendu) / Nd # 0.4428157 # 0.4428157 %
+sum(entendu <- grepl("entendu", DF$Détails)) # 29
+100 * sum(entendu) / Nd # 0.468649 %
 
 sum(entendu & vu) # 0 # no seen and heard
 
 ## how many with a status (sex and/or age) but neither seen nor heard:
 pat <- "adulte|immature|jeune|mâle|femelle"
-ipat <- grepl(pat, DFb$Détails)
-sum(ipat & !vu & !entendu) # 2436
-100 * sum(ipat & !vu & !entendu) / Nd # 37.19652 %
+ipat <- grepl(pat, DF$Détails)
+sum(ipat & !vu & !entendu) # 2104
+100 * sum(ipat & !vu & !entendu) / Nd # 34.00129 %
 
 ## how many "signs of presence":
-sum(presence <- grepl("indice de présence", DFb$Détails)) # 174
-100 * sum(presence) / Nd # 2.656894 %
+sum(presence <- grepl("indice de présence", DF$Détails)) # 174
+100 * sum(presence) / Nd # 2.811894 %
 
 table(vu[DFb$Détails != ""], (DFb$Année >= 1980)[DFb$Détails != ""])
 
@@ -234,10 +237,10 @@ print(xtable(o), booktabs = TRUE)
 
 ### Comportement (behaviour)
 
-length(unique(DFb$Comportement)) # 24
+length(unique(DF$Comportement)) # 24
 
-cbind(sort(table(DFb$Comportement)),
-      sort(table(DF$Comportement)))
+cbind(sort(table(DFb$Comportement)), # all data
+      sort(table(DF$Comportement)))  # only 1980->2025
                                                           [,1]  [,2]
 Accouplement,En chasse/Se nourrit,Se déplace                 1     1
 Accouplement,Se déplace,En chasse/Se nourrit,Rut, parade     1     1
@@ -265,8 +268,8 @@ Se déplace                                                3117  3103
 
 
 ## concordance between no reported behaviour and no reported details:
-table(DFb$Comportement == "", DFb$Détails == "")
-table(DFb$Comportement == "", DFb$Détails == "") / nrow(DFb)
+table(DF$Comportement == "", DF$Détails == "")
+table(DF$Comportement == "", DF$Détails == "") / nrow(DF)
 
 ############################################################
 ### Finalize data preparation
@@ -276,132 +279,37 @@ dr <- grep("Corse", DF$Département)
 length(dr) # 3
 DF <- DF[-dr, ]
 
-## 2) drop observations older than a certain date:
-dw <- which(DF$Année < 1980)
-length(dw) # 640
-DF <- DF[-dw, ]
-dim(DF) # 22867    41
+## 2) drop the 29 cases where the wildcat was "heard"
+dr <- grep("entendu", DF$Détails)
+length(dr) # 29
+DF <- DF[-dr, ]
 
-tabyr <- table(DF$Année)
-Year <- 1980:2025
-y <- as.vector(tabyr)
-log <- c("", "y")
-ylab <- "Number of records"
-lby <- as.character(Year)
-lby[as.logical(Year %% 5)] <- ""
+## 3) drop the 174 cases with "sign of presence"
+dr <- grep("indice de présence", DF$Détails)
+length(dr) # 174
+DF <- DF[-dr, ]
 
-pdf("N_records.pdf", 10, 9)
-layout(matrix(1:2, 2))
-par(las = 1, mar = c(4, 4, 0.5, 0.5))
-for (i in 1:2) {
-    plot(Year, y, "o", xlab = "", ylab = ylab, log = log[i], xaxt = "n")
-    text(1980, 2000, LETTERS[i], cex = 1.5, font = 2, adj = c(0, 1))
-    ## axis(1, at = Year, labels = lby, las = 2)
-    axis(1, at = seq(1980, 2025, 5))
-    mtext("Year", 1, 2.5)
-}
-dev.off()
+dim(DF) # 22664    41
 
-
-ch <- chull(DF[, ill])
-chxy <- DF[ch, ill]
-map("france", col = "grey")
-points(DF[, ill], pch = 3, col = "#0000FF66")
-polygon(chxy)
-
-## create two clusters with the parallel N 43.9
-map("france", col = "grey")
-north <- DF$Lat..WGS84. > 43.9
-i <- which(north)
-j <- chull(DF[i, ill])
-poly.north <- as.matrix(DF[i[j], ill])
-i <- which(!north)
-j <- chull(DF[i, ill])
-poly.south <- as.matrix(DF[i[j], ill])
-
-library(tigers)
-## cat(deparse(ext(r1)[])) # from script_CCI.R
-ex <- c(xmin = -4.8194444444305, xmax = 8.25000000001498,
-        ymin = 42.3194444444406,  ymax = 51.111111111108)
-
-## alternative to have the grid fit with the BioClim's one:
-## ex <- c(xmin = -5.5, xmax = 10, ymin = 41, ymax = 51.5)
-
-msk.north <- polygon2mask(poly.north, ex)
-msk.south <- polygon2mask(poly.south, ex)
-msk <- msk.north + msk.south
-dim(msk) # 4705 3165
-sum(msk) # 4873713
-length(msk) # 14891325
-
-library(terra)
-rmsk <- rast(t(msk), extent = ex)
-
-## mask with France's borders
-od <- setwd("./GADM")
-library(sf)
-st_layers("gadm_410-levels.gpkg")
-GADM <- read_sf("gadm_410-levels.gpkg", "ADM_0", as_tibble = FALSE)
-setwd(od)
-
-FRA <- GADM[GADM$COUNTRY == "France", "geom"]
-## rasterize only the main polygon:
-XY <- FRA$geom[[1]][[3]][[1]]
-msk.fr <- polygon2mask(XY, ex)
-mskb <- msk + msk.fr
-mskb[which(mskb == 1L)] <- 0L
-mskb[which(mskb == 2L)] <- 1L
-
-rmskb <- rast(t(mskb), extent = ex)
-plot(FRA, border = "grey", reset = FALSE)
-plot(rmskb, add = TRUE, col = c("#00330033", "#0000FF88"))
-points(DF[, ill], pch = 3, col = "#33CC00")
-
-## writeRaster(rmskb, "rmskb.tif") # 1.3 Mo
-## writeRaster(rast(t(msk.fr), ext = ex, crs = crs(rmskb)), "rmsk_fr.tif") # 1.5 Mo
-
-rmskb <- rast("rmskb.tif")
-elev <- rast("FRA_wc2.1_30s_elev.tif")
-bioc <- rast("FRA_wc2.1_30s_bio.tif")
-
-## make a new mask at 30'' resolution matching the BioClim data:
-msk.fr.3 <- polygon2mask(XY, ext(elev)[], 120, backgrd = NA_integer_)
-rmsk3 <- rast(t(msk.fr.3), ext = ext(elev), crs = crs(elev))
-## writeRaster(rmsk3, "rmsk3.tif") # 350 ko
-
-plot(rmskb, col = c("#00000000", "#AAAAFF"), legend = FALSE, reset = FALSE, axes = FALSE)
-plot(FRA, add = TRUE)
-points(DF[, ill])#, pch = 19, col = "#00000055")
-
-## change 0->NA for the map
-v <- values(rmskb)
-v[v == 0] <- NA_integer_
-values(rmskb) <- v
-
-lat <- 44; l <- 200; x0 <- -4.5
-f <- function(x) abs(geod(c(x0, x), rep(lat, 2))[2] - l)
-x1 <- nlm(f, 2)$estimate
-x1 <- x1 - x0
-y <- 46.2
-h <- 0.05
-
-xli <- c(-5, 10)
-yli <- c(41.4, 51)
-
-library(mapdata)
-
-pdf("map.pdf", 9, 8) # "_v2" & 'width = 8' if plot(FRA....
-par(mar = c(3.5, 3.5, 0.5, 0.5))
-#plot(FRA, reset = FALSE, lwd = 0.25)
-map("worldHires", xlim = xli, ylim = yli, lwd = 0.25, border = "white", col = "grey92", fill = TRUE)
-plot(rmskb, col = "#AAAAFF", legend = FALSE, axes = FALSE, add = TRUE)
-##points(DFb[, ill], cex = 0.7, pch = 19, col = "#00000033")
-points(DFb[, ill], cex = 0.35, pch = 3)
-for (i in 0:1) axisMap(i)
-rose(-3.5, 44.7, .35)#, labels = c("N", "", "", ""))
-rect(x0, y, x1, y + h, col = "slategrey", border = "slategrey")
-text((x0 + x1)/2, y, paste(l, "km"), adj = c(0.5, 1.5))
-dev.off()
+##tabyr <- table(DF$Année)
+##Year <- 1980:2025
+##y <- as.vector(tabyr)
+##log <- c("", "y")
+##ylab <- "Number of records"
+##lby <- as.character(Year)
+##lby[as.logical(Year %% 5)] <- ""
+##
+##pdf("N_records.pdf", 10, 9)
+##layout(matrix(1:2, 2))
+##par(las = 1, mar = c(4, 4, 0.5, 0.5))
+##for (i in 1:2) {
+##    plot(Year, y, "o", xlab = "", ylab = ylab, log = log[i], xaxt = "n")
+##    text(1980, 2000, LETTERS[i], cex = 1.5, font = 2, adj = c(0, 1))
+##    ## axis(1, at = Year, labels = lby, las = 2)
+##    axis(1, at = seq(1980, 2025, 5))
+##    mtext("Year", 1, 2.5)
+##}
+##dev.off()
 
 ############################################################
 ### Data selection for CV
@@ -410,7 +318,7 @@ dev.off()
 tabID <- table(DF$ID.universel.observateur)
 ## find those who mode a single observation (see above):
 sel <- match(names(tabID == 1), DF$ID.universel.observateur)
-## drop them and proceed:
+## drop them and proceed from here:
 DF <- DF[-sel, ]
 
 ############################################################
@@ -419,112 +327,24 @@ DF <- DF[-sel, ]
 DUP <- duplicated(DF[, 25:27])
 LOC <- DF[!DUP, ill]
 
-cells <- cellFromXY(rmskb, LOC)
-n <- length(cells) # 13332
-length(unique(cells)) # 13156
+cells <- cellFromXY(rmsk.fr, LOC)
+n <- length(cells) # 13260
+length(unique(cells)) # 13086
 
-## finally rarefy:
+## finally rarefy (but no need...):
 LOC <- LOC[!duplicated(cells), ]
-n <- length(cells <- unique(cells))
-
-############################################################
-### Matrice des LCC sur toute la France de 1992 à 2022 (extraite des rasters)
-lcc <- readRDS("../../lcc.rds")
-## the matrix of LCCs is on the same grod than rmskb:
-prod(dim(rmskb)) == nrow(lcc)
-
-## areas of pixels for each latitude
-library(geosphere)
-AREA <- numeric(nrow(rmskb))
-## north->south so the index is the row of the raster
-k <- 360
-res <- 1/k
-
-l1 <- ex[4]
-for (i in 1:nrow(rmskb)) {
-    l0 <- l1 - res
-    P <- rbind(c(0, l0), c(0, l1), c(res, l1), c(res, l0), c(0, l0))
-    AREA[i] <- areaPolygon(P)
-    l1 <- l0
-}
-
-## find the pixels within the borders of FR
-ii <- which(values(rast(t(msk.fr), ext = ex)) == 1)
-areas <- AREA[rowFromCell(rmskb, ii)]
-lcc_fr_2022 <- lcc[ii, "2022"]
-areas_lcc_FR2022 <- aggregate(areas, by = list(lcc_fr_2022), FUN = sum)
-Npx <- table(lcc_fr_2022) # number of pixels in each LCC
-areas_lcc_FR2022$x <- areas_lcc_FR2022$x / 1e6 # m^2 -> km^2
-areas_lcc_FR2022$y <- 100*areas_lcc_FR2022$x / sum(areas_lcc_FR2022$x)
-areas_lcc_FR2022$z <- Npx
-areas_lcc_FR2022$aa <- 100*Npx/sum(Npx)
-
-LEGEND <- scan("~/data/GIS/ESACCI/LEGEND.txt", what = "", sep = "\n")
-dim(LEGEND) <- c(length(LEGEND)/3, 3)
-
-areas_lcc_FR2022$Group.1 <- LEGEND[match(areas_lcc_FR2022$Group.1, LEGEND[, 1]), 2]
-names(areas_lcc_FR2022) <- c("Land cover class", "area_km2", "area_pct", "Npx", "pct")
-
-## add totals:
-tmp <- data.frame("Total", t(colSums(areas_lcc_FR2022[, -1])))
-names(tmp) <- names(areas_lcc_FR2022)
-storage.mode(tmp$Npx) <- "integer"
-areas_lcc_FR2022 <- rbind(areas_lcc_FR2022, tmp)
-
-## round:
-for (i in c(2, 3, 5))
-    areas_lcc_FR2022[[i]] <- round(areas_lcc_FR2022[[i]], 2)
-
-print(xtable(areas_lcc_FR2022), booktabs = TRUE, include.rownames = FALSE)
-
-
-### How LCC have changed in each pixel where at least one wild cat was observed?
-
-LCCLOC <- lcc[cells, ]
-uLCCLOC <- unique(LCCLOC)
-dim(uLCCLOC) # 378  31
-
-uu <- sort(unique(as.vector(uLCCLOC)))
-m <- match(uu, LEGEND[, 1])
-cols <- LEGEND[m, 3]
-bks <- c(0, (uu[-1] + uu[-length(uu)])/2, 1e3)
-counts <- table(match(apply(LCCLOC, 1, paste, collapse = "#"),
-                      apply(unique(LCCLOC), 1, paste, collapse = "#")))
-
-pdf("histories.pdf", 10, 50)
-nr <- nrow(uLCCLOC)
-image(1992:2022, 1:nr, t(uLCCLOC[nr:1, ]),
-      las = 1, col = cols, breaks = bks)
-mtext(counts, 4, 0.1, adj = 0, at = rev(seq_along(counts)), las = 1)
-dev.off()
-
-lu <- apply(uLCCLOC, 1, function(x) length(unique(x)))
-a <- aggregate(as.numeric(counts), by = list(lu), FUN = sum)
-data.frame(a, "Pct" = round(100 * a$x/sum(counts), 2))
-##   Group.1     x   Pct
-## 1       1 12192 91.45
-## 2       2  1104  8.28
-## 3       3    34  0.26
-## 4       4     2  0.02
-
-ii <- which(lu == 1)
-leg <- LEGEND[match(uLCCLOC[ii, 1], LEGEND[, 1]), 2]
-cc <- counts[ii]
-attributes(cc) <- NULL
-o <- order(cc, decreasing = TRUE)
-
-df <- data.frame(leg, cc)[o, ]
-names(df) <- c("Land cover classs", "Number of localities")
-
-library(xtable)
-print(xtable(df), booktabs = TRUE, file = "tab_lcc.tex")
+n <- length(cells <- unique(cells)) # 13086
 
 ############################################################
 ### MaxEnt modelling
 
 library(maxentcpp)
+library(terra)
 
+elev <- rast("FRA_wc2.1_30s_elev.tif")
+bioc <- rast("FRA_wc2.1_30s_bio.tif")
 rmsk3 <- rast("rmsk3.tif") # the mask at 30'' reso.
+rmsk.fr <- rast("rmsk_fr.tif") # the mask at 10'' reso.
 
 ## crop and mask the env. data to the FR borders:
 elev <- crop(elev, rmsk3, mask = TRUE)
@@ -547,21 +367,23 @@ NC3 <- ncol(elev)
 cells_elev <- terra::cells(elev)
 xy <- xyFromCell(elev, cells_elev)
 ## find the positions of these in the 10''-mask:
-ic <- cellFromXY(rmskb, xy)
+ic <- cellFromXY(rmsk.fr, xy)
 length(ic) # 913313
 length(ic) == sum(!is.na(values(elev))) # check
+
+lcc <- readRDS("lcc.rds")
 
 source("getNei.R")
 source("buildHabitatIndex.R")
 
-X <- getNei2(ic, 5) # ~9 sec, much faster is order is < 5
+X <- getNei2(ic, 5) # ~9 sec, much faster if order is < 5
 ## X <- sapply(ic, order = 0:5, getNei) # ~1 min
 if (is.matrix(X)) X <- t(X)
 
 ## the TOP-10 LCC in FR:
 sel_lcc <- c(11L, 130L, 60L, 30L, 10L, 70L, 100L, 190L, 90L, 12L)
 
-for (i in sel_lcc)
+for (i in sel_lcc) # ~5 min.
     assign(paste0("mosaic", i), buildHabitatIndex2(X, i))
 
 ## special function to have the LCC rasters fit with the WorldClim ones
@@ -601,7 +423,7 @@ eval(parse(text = CMD))
 ## 2. Occurrence and background points
 info <- maxent_grid_info(g_elev)
 dim <- do.call(maxent_dimension, info[1:5])
-df_occ <- as.data.frame(xyFromCell(rmskb, cells))
+df_occ <- as.data.frame(xyFromCell(rmsk.fr, cells))
 occ <- maxent_read_occurrences(df_occ, dim, lon_col="x", lat_col="y")
 bg  <- maxent_background_indices(g_elev, n = n)
 
@@ -636,7 +458,7 @@ m <- cor(matrix(tmp, ncol = length(list_vars)), use = "p")
 dimnames(m) <- list(var_nms, var_nms)
 round(m, 3)
 ## print(xtable(m), file = "colin.tex")
-##plot(hclust(as.dist(1 - m)))
+## plot(hclust(as.dist(1 - m)))
 
 ## 4. Train
 fs <- maxent_featured_space(n_total, sample_indices, features)
@@ -658,21 +480,21 @@ maxent_evaluate(pres_preds, bg_preds)
 pred <- maxent_project_cloglog(fs, list_grd, var_nms)
 r_maxent_pred <- maxent_grid_to_terra(pred)
 
+
 ## 7. Variable Importance
 vars_contrib <- maxent_percent_contribution(fs, var_nms)
 XLAB <- var_nms
-XLAB[1:5] <- c("Temperature (°C)", "Temperature seasonality",
-               "Rainfall (mm)", "Rainfall seasonality",
+XLAB[1:5] <- c("Temperature (°C)", "Rainfall (mm)",
+               "Rainfall seasonality",
+               "Temperature seasonality",
                "Altitude (m)")
 XLAB[16] <- "Cropland (%)"
-XLAB[18] <- "Herbaceous (%)"
+XLAB[18] <- "Herbaceous cover (%)"
 XLAB[19] <- "Tree or shrub (%)"
 XLAB[21] <- "Urban areas (%)"
 XLAB[23] <- "Deciduous forest (%)"
 XLAB[24] <- "Needleaved forest (%)"
 
-##system("rm -Rf plots/")
-##maxent_plot_response_curves(fs, list_grd, XLAB, "./", "Felis silvestris", thumbnail = FALSE)
 
 myplot <- function(x, xlab = "...", ylim = c(0, 1), ...) {
     plot(x, type = "l", ylim = ylim, xlab = xlab,# yaxt = "n",
@@ -681,7 +503,7 @@ myplot <- function(x, xlab = "...", ylim = c(0, 1), ...) {
 }
 
 pdf("maxent_response_curve.pdf", 9, 8)
-layout(matrix(c(1:7, 0, 8:10, 0), 4, 3))
+layout(matrix(c(3, 1, 2, 4:7, 0, 8:10, 0), 4, 3))
 par(mar = c(4, 4, 2, 1), las = 1)
 for (i in 1:25) {
     if (!vars_contrib$contribution[i]) next
@@ -707,12 +529,12 @@ f <- function(par) {
 }
 
 MASK <- rast("rmsk_fr.tif") # if all FR
-MASK <- rast("rmskb.tif") # if restrict with chulls
+## MASK <- rast("rmskb.tif") # if restrict with chulls
 
 ## build the background pixels
 iMask <- which(values(MASK) == 1) # easier to replicate
-nz <- 10 * n # size of the background
-rs <- sample(iMask, nz)
+nz <- 1e4L# * n # size of the background
+rs <- sample(iMask, nz) # saveRDS(rs, "rs_pour_MaxLike.rds")
 
 X <- t(getNei2(cells, 5))
 Z <- t(getNei2(rs, 5))
@@ -836,67 +658,8 @@ repeat {
 }
 cat("Final:", SELS[k], "\n")
 
-### First set of models to test effect of 'mosaic order'
-FORMS_x <- list("~ idxHab60_x", "~ idxHab130_x", "~ idxHab60130_x")
-
-### Second set of models with 'mosaic order = 5'
-FORMS_x <- list("~ idxHab60_x",
-                "~ idxHab60_x + alt_x",
-                "~ idxHab60_x + log10(alt_x + 1)",
-                "~ idxHab60_x + log10(alt_x + 1) + bio1_x",
-                "~ idxHab60_x + log10(alt_x + 1) + bio12_x",
-                "~ idxHab60_x + log10(alt_x + 1) + bio1_x + bio12_x",
-                "~ idxHab60_x + log10(alt_x + 1) + bio1_x + bio4_x + bio12_x",
-                "~ idxHab60_x + log10(alt_x + 1) + bio1_x + bio4_x + bio12_x + bio15_x",
-                "~ idxHab60_x + log10(alt_x + 1) + bio1_x + bio4_x",
-                "~ idxHab60_x + log10(alt_x + 1) + bio12_x + bio15_x",
-                "~ idxHab60_x + bio1_x",
-                "~ idxHab60_x + bio12_x",
-                "~ idxHab60_x + bio1_x + bio12_x",
-                "~ idxHab60_x + bio1_x + bio4_x + bio12_x",
-                "~ idxHab60_x + bio1_x + bio4_x + bio12_x + bio15_x",
-                "~ idxHab60_x + bio1_x + bio4_x",
-                "~ idxHab60_x + bio12_x + bio15_x")
-
-FORMS_z <- lapply(FORMS_x, gsub, pattern = "_x", replacement = "_z")
-
-FUN <- function(x) eval(parse(text = x), .GlobalEnv)
-FORMS_x <- lapply(FORMS_x, FUN)
-FORMS_z <- lapply(FORMS_z, FUN)
-
-AIC <- numeric()
-#for (ORDERS in list(0:1, 0:2, 0:3, 0:4, 0:5)) { #for 1st set of models
-for (ORDERS in list(0:5)) { # for 2nd set of models
-
-    ## the pixels of the locations + the neighbourghs (wrt order)
-    ## X <- t(sapply(cells, order = ORDERS, getNei))
-    X <- t(getNei2(cells, order = ORDERS))
-    ##str(X)
-    stopifnot(nrow(X) == n)
-    denom <- ncol(X) * ncol(lcc)
-
-    idxHab60_x <- buildHabitatIndex2(X, 60L)
-    ##idxHab130_x <- buildHabitatIndex(X, 130L, denom)
-    ##idxHab60130_x <- buildHabitatIndex(X, c(60L, 130L), denom)
-
-    ##Z <- t(sapply(rs, order = ORDERS, getNei))
-    Z <- t(getNei2(rs, order = ORDERS))
-
-    idxHab60_z <- buildHabitatIndex2(Z, 60L)
-    ##idxHab130_z <- buildHabitatIndex(Z, 130L, denom)
-    ##idxHab60130_z <- buildHabitatIndex(Z, c(60L, 130L), denom)
-
-    for (k in seq_along(FORMS_x)) {
-        ## build the model matrices:
-        x <- model.matrix(FORMS_x[[k]])
-        z <- model.matrix(FORMS_z[[k]])
-
-        np <- ncol(x) # nb. of parameters
-        o <- nlminb(rep(0, ncol(x)), f, lower = rep(-50, np))
-        AIC <- c(AIC, 2 * (o$objective + np)) # AIC
-    }
-}
-
+####################################
+## PRELIMINARY ANALYSES (1st version of the paper)
 ## Results from first set of models:
 matrix(round(AIC), 3)
        [,1]   [,2]   [,3]   [,4]   [,5]
@@ -925,10 +688,7 @@ data.frame(Model = Model, round(AIC))
 15                  Forest + bio1 + bio4 + bio12 + bio15     308519
 16                                  Forest + bio1 + bio4     306600
 17                                Forest + bio12 + bio15     312159
-
-## parameter estimates:
-## set k <- 8 and rerun nlminb() above
-o
+####################################
 
 profileCI <- function(o) {
     np <- length(o$par)
@@ -961,14 +721,10 @@ M <- cbind(o$par, o$par + CIres)
 rownames(M) <- gsub("_x", "", colnames(x))
 round(M, 3)
 
-## for the null model
-x <- model.matrix(~ rep(1, n) - 1)
-z <- model.matrix(~ rep(1, nz) - 1)
-
-## auc
+## AUC
 pres_preds <- 1/(1 + exp(-drop(x %*% o$par)))
 bg_preds <- 1/(1 + exp(-drop(z %*% o$par)))
-## then go to script.R -> .C("auc", ...) line 71
+## then go to script_AUC_TSS_CBI_MESS.R -> .C("auc", ...) line 71
 
 ### Predictions
 
@@ -981,28 +737,27 @@ ncells <- length(newcells)
 newX <- getNei2(newcells, order = 5)
 newX <- t(newX)
 
-i <- cellFromXY(elev, xyFromCell(rmskb, newcells))
+i <- cellFromXY(elev, xyFromCell(rmsk.fr, newcells))
 v <- values(bioc)[i, ]
-
+new_bio1 <- v[, 1] # temperature
 new_bio4 <- v[, 4] # seasonality (SD(temperature))
-new_bio12 <- v[, 12] # rainfall
 new_bio15 <- v[, 15] # seasonality (SD(rainfall))
 new_elev <- values(elev)[i, ] # altitude
 
 new_mosaic11 <- buildHabitatIndex2(newX, 11L)
-new_mosaic130 <- buildHabitatIndex2(newX, 130L)
 new_mosaic60 <- buildHabitatIndex2(newX, 60L)
+new_mosaic30 <- buildHabitatIndex2(newX, 30L)
 new_mosaic10 <- buildHabitatIndex2(newX, 10L)
 new_mosaic70 <- buildHabitatIndex2(newX, 70L)
-new_mosaic100 <- buildHabitatIndex2(newX, 100L)
 new_mosaic190 <- buildHabitatIndex2(newX, 190L)
 new_mosaic90 <- buildHabitatIndex2(newX, 90L)
+new_mosaic12 <- buildHabitatIndex2(newX, 12L)
 
-
-XX <- cbind(1, new_bio4, new_bio12, new_bio15,
+XX <- cbind(1, new_bio1, new_bio4, new_bio15,
             bs(new_elev, NULL, 1000, 1),
-            new_mosaic11, new_mosaic130, new_mosaic60, new_mosaic10,
-            new_mosaic70, new_mosaic100, new_mosaic190, new_mosaic90)
+            new_mosaic11, new_mosaic60, new_mosaic30,
+            new_mosaic10, new_mosaic70, new_mosaic190,
+            new_mosaic90, new_mosaic12)
 
 beta <- o$par
 
@@ -1020,18 +775,18 @@ values(r3) <- v
 ##values(rmsk.fr) <- v
 
 lat <- 44; l <- 200; x0 <- -4.5
-x1 <- nlm(function(x) abs(geod(c(x0, x), rep(lat, 2))[2] - l), 2)$estimate
+x1 <- nlm(function(x) abs(pegas::geod(c(x0, x), rep(lat, 2))[2] - l), 2)$estimate
 x1 <- x1 - x0
 y <- 46.2
 h <- 0.05
 
-## pdf("predictions_maxent.pdf", 11, 8)
-pdf("predictions.pdf", 11, 8)
+pdf("predictions_maxent.pdf", 11, 8)
+## pdf("predictions.pdf", 11, 8)
 par(mar = c(4, 4, 0.1, 2))
 ## plot FRA with type = "n" to have the correct projection
 map("france", type = "n", xlim = c(-4.8, 8.25), ylim = c(42.32, 51.1))
-plot(r3, axes = FALSE, add = TRUE)
-##plot(rmsk.fr, axes = FALSE, add = TRUE)
+##plot(r3, axes = FALSE, add = TRUE)
+plot(r_maxent_pred, axes = FALSE, add = TRUE)
 for (a in 0:1) axisMap(a)
 par(xpd = TRUE)
 rose(-3.5, 44.7, 0.35)#, labels = c("N", "", "", ""))
@@ -1050,12 +805,21 @@ myhist <- function(x, ...)
 myplot <- function(x, y, xlab = "", ...)
     plot(x, y, "l", xlab = xlab, ylab = "Predicted partial effect")
 
-XLAB <- c("Temperature seasonality",
-          "Rainfall (mm)", "Rainfall seasonality", "Altitude (m)",
-          "Herbaceous cover", "Grassland", "Deciduous forest",
+###XLAB <- c("Temperature seasonality",
+###          "Rainfall (mm)", "Rainfall seasonality", "Altitude (m)",
+###          "Herbaceous cover", "Grassland", "Deciduous forest",
+###          "Cropland", "Needleaved forest",
+###          "Mosaic tree, shrub, herbaceous", "Urban areas",
+###          "Mixed forest")
+
+XLAB <- c("Temperature (°C)", "Temperature seasonality",
+          "Rainfall seasonality", "Altitude (m)",
+          "Herbaceous cover", "Deciduous forest",
+          "Mixed cropland, natural vegetation",
           "Cropland", "Needleaved forest",
-          "Mosaic tree, shrub, herbaceous", "Urban areas",
-          "Mixed forest")
+          "Urban areas", "Mixed forest",
+          "Tree or shrub")
+
 effects <- strsplit(as.character(FORMS_x)[2], " \\+ ")[[1]]
 
 m <- matrix(1:24, 8, 3)
