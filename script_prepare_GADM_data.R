@@ -6,7 +6,7 @@ ex <- c(xmin = -4.8194444444305, xmax = 8.25000000001498,
         ymin = 42.3194444444406,  ymax = 51.111111111108)
 
 ## mask with France's borders
-od <- setwd("..................") # gie the path to the directory where the file below is stored
+od <- setwd("..................") # give the path to the directory where the file below is stored
 st_layers("gadm_410-levels.gpkg")
 GADM <- read_sf("gadm_410-levels.gpkg", "ADM_0", as_tibble = FALSE)
 setwd(od)
