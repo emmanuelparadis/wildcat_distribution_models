@@ -2,7 +2,7 @@
 
 This repository contains code to analyse the distribution of wildcat populations in France. The main results are published in:
 
-Modelling the distribution of European wildcats in France using national-scale citizen science data. **Mammal Research** [doi: 10.1007/s13364-026-00905-6](https://doi.org/10.1007/s13364-026-00905-6).
+Modelling the distribution of European wildcats in France using national-scale citizen science data. *Mammal Research* [doi: 10.1007/s13364-026-00905-6](https://doi.org/10.1007/s13364-026-00905-6).
 
 ## Public data
 - gadm_410-levels.gpkg
@@ -42,4 +42,4 @@ Sources:
 - script_prepare_LCC_data.R
 - script_Felis_silvestris_France_2026.R
 
-The file `script_Felis_silvestris_France_2026.R` contains a list of analyses run for a paper currently under revision.
+The file `script_Felis_silvestris_France_2026.R` contains a list of analyses.
